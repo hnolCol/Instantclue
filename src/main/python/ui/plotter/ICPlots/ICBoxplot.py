@@ -21,6 +21,8 @@ class ICBoxplot(ICChart):
 
     def displaySummaryData(self,*args,**kwargs):
         ""
+        
+        print(self.data["groupedPlotData"])
         if "groupedPlotData" in self.data:
             self.mC.mainFrames["data"].openDataFrameinDialog(self.data["groupedPlotData"], 
                                     ignoreChanges=True, 

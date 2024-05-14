@@ -308,6 +308,7 @@ class ICScatterPlot(ICChart):
                         print(e)
                 
             if hasattr(self,"colorLegend"):
+                print(colorGroup)
                 self.addColorLegendToGraph(colorGroup,update=False, title = self.getTitleOfColorTable())
                 
             self.updateFigure.emit()

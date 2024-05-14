@@ -49,7 +49,7 @@ def sstat(X : np.ndarray,Y : np.ndarray, s0 : float):
     return d
 
 @jit(nopython=True)
-def fstat(data : np.ndarray, numberGroups : int, groupSize : int) -> float:
+def fstat(data : np.ndarray, numberGroups : int, groupSize : int, s0 : float = 0.0) -> float:
     """
     Returns the f-statistic of a dataarray
     """
@@ -68,12 +68,12 @@ def fstat(data : np.ndarray, numberGroups : int, groupSize : int) -> float:
 
     MSTreat = SSR / dfTreat
     MSError = SSE / dfError
-    F = MSTreat / MSError
+    F = MSTreat / (MSError + s0)
     return  F
 
 
 @jit(parallel=True,nopython=True)
-def performFTest(X : np.ndarray) -> np.ndarray:
+def performFTest(X : np.ndarray, s0 : float = 0.0) -> np.ndarray:
     """
     Calculates the ANOVA F statistic
 
@@ -83,7 +83,7 @@ def performFTest(X : np.ndarray) -> np.ndarray:
     F = np.zeros(shape=N)
     for idx in prange(N):
         rowData = X[:,idx,:]
-        fvalue = fstat(rowData,numberGroups,nreps)
+        fvalue = fstat(rowData,numberGroups,nreps,s0)
         F[idx] = fvalue
 
     return F

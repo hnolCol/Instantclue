@@ -7,7 +7,7 @@ from itertools import combinations
 import json
 from datetime import datetime
 import socket
-
+from .data import DataCollection
 #from main.python.ui.custom.ICQuickSelect import FavoriteSelectionCollection
 
 
@@ -16,7 +16,7 @@ from ..utils.stringOperations import getMessageProps
 
 class ICGrouping(object):
     
-    def __init__(self,sourceData):
+    def __init__(self,sourceData : DataCollection):
 
         self.exclusivesMinNonNaN = 1 
         self.sourceData = sourceData

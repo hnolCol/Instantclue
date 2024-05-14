@@ -821,7 +821,8 @@ class ICChart(QObject):
 				w = WarningMessage(title="To many items for legend.",
 								infoText = "More than 200 items for legend which is not supported.\nYou can export the color mapping to excel instead.")
 				w.exec()	
-				return			
+				return		
+				
 			if ignoreNaN:
 				idx = colorData["color"] != self.getParam("nanColor")
 				colorData = colorData.loc[idx]

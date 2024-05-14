@@ -102,8 +102,9 @@ def calculatePositions(dataID, sourceData, numericColumns, categoricalColumns, m
             groupedPlotData = pd.concat([groupedPlotData,IQR],axis=0)# groupedPlotData.append(IQR)
 
     elif splitByCategories:
-        try:
+        try :
             groupedPlotData = data.groupby(by=categoricalColumns,sort=False).describe()
+            groupedPlotData.columns = ['_'.join(col).rstrip('_') for col in groupedPlotData.columns.values]
             columnNamesForIQR = [colName for colName in groupedPlotData.columns if "75%" in colName or "25%" in colName]
             if len(columnNamesForIQR) > 0:
                 IQR = groupedPlotData[columnNamesForIQR].diff(axis=1)
@@ -111,7 +112,8 @@ def calculatePositions(dataID, sourceData, numericColumns, categoricalColumns, m
                 IQR = IQR[IQR.columns[1::2]]
                 IQR.columns = [(colName[0],"IQR") for colName in columnNamesForIQR[1::2]]
             groupedPlotData = groupedPlotData.join(IQR)
-        except:
+        except Exception as e :
+            print(e)
             groupedPlotData = pd.DataFrame()
    
     if not splitByCategories and nCatCols > 0:

@@ -135,7 +135,7 @@ menuBarItems = [
     },
     {
         "subM":"Groupings",
-        "name":"Correlate row against all other in group",
+        "name":"Correlate first row against all other in group",
         "funcKey": "getUserInput",
         "dataType": "Numeric Floats",
         "fnKwargs": {"funcKey":"groupings:correlateToRowWithinGroups",

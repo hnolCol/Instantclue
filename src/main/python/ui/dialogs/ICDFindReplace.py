@@ -105,7 +105,7 @@ class FindReplaceDialog(QDialog):
 
     def keyPressEvent(self,e):
         """Handle key press event"""
-        if e.key() == Qt.Key_Escape:
+        if e.key() == Qt.Key.Key_Escape:
             self.reject()
 
     def onDataTypeChange(self, currentText):

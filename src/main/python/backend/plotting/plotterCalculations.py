@@ -926,7 +926,10 @@ class PlotterBrain(object):
                     histRangeMin, histRangeMax = np.nanmin(data[numCol].values), np.nanmax(data[numCol].values)
 
                 for groupName, groupData in groupby:
-
+                    #for some reasons iterating through groupby gives different groupNames than groups.keys
+                    #likely limited if the number of categorical columns is 1. 
+                    if len(categoricalColumns) == 1 and isinstance(groupName,tuple):
+                        groupName = groupName[0]
                     internalID = internalIDs[groupName]
                     if self.histogramLog:
                         histData = np.log2(groupData[numCol]).replace([np.inf, -np.inf],np.nan).dropna()
@@ -3327,7 +3330,7 @@ class PlotterBrain(object):
             if colorGroupData is None:
                 colorCategories = rawColorData.unique()
             else:
-                colorCategories = colorGroupData["group"].values
+                colorCategories = colorGroupData["group_names"].values
 
             colors, layerMap = self.getColorMapDictAndLayers(colorCategories,colorColumn.index.size) 
             colorData = pd.DataFrame(rawColorData.map(colors).values,
@@ -3343,6 +3346,7 @@ class PlotterBrain(object):
                 colorGroupData = pd.DataFrame(columns=["color","group"])
                 colorGroupData["group"] = [f"{colorCategory} ({np.sum(rawColorData == colorCategory)})" for colorCategory in colorCategories]
                 colorGroupData["color"] = [colors[k] for k in colorCategories]
+                colorGroupData["group_names"] = colorCategories
                 #map color data and save as df
                 colorGroupData["internalID"] = [getRandomString() for _ in colorGroupData.index]
                # categoryIndexMatch = dict([(intID,rawData[rawColorData.values == category].index) for category, intID in zip(colorGroupData["group"].values,

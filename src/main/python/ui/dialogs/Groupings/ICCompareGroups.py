@@ -31,7 +31,7 @@ class ICCompareGroups(QDialog):
         #     self.groupCombo2 = createCombobox(self,self.mC.grouping.getGroupings())
         #     self.groupCombo2.setCurrentText("Select ..")
 
-        if self.test == "SAM":
+        if self.test in ["SAM","ANOVA FDR"]:
 
             fdr = self.mC.config.getParam("sam.statistic.fdr")
             s0 = self.mC.config.getParam("sam.statistic.s0")

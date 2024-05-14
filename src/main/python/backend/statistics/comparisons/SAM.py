@@ -15,8 +15,10 @@ from scipy.optimize import curve_fit
 from scipy.special import factorial
 from scipy.interpolate import UnivariateSpline
 from typing import List, Tuple
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
+
 import time
+
 from ..utils.tests import performFTest, performSAMTest, performOneSampleSAMTest
 from ..utils.base import countValuesAboveThresh
     
@@ -29,7 +31,7 @@ def exponentialDecay(x : np.ndarray|float, N : float, g : float) -> float:
 
 # inititate functions once to get speed up on first execution in InstnatCLue gui 
 d = np.array([[2.4,2.5,2.5,2.8],[5.4,7.6,5.4,6.4]]).reshape(2,1,4)
-performFTest(d)
+performFTest(d,s0=0.1)
 performSAMTest(np.array([[2.3,2.5,2.6]]).reshape(1,3),np.array([[2.3,2.5,2.5]]).reshape(1,3),0.1)
 d = performOneSampleSAMTest(np.array([[2.3,2.5,2.6],[2.3,2.5,2.6],[2.3,2.5,2.6]]).reshape(3,3),0,0.1)
 print(d)
@@ -145,11 +147,12 @@ class PermutationBasedTest(StatisticalTest):
 
 class ANOVAStatistic(PermutationBasedTest):
     ""
-    def __init__(self, dataID: str, data: pd.DataFrame, groupingName: str | List[str], grouping: dict, name: str = None, minValidInGroup : int = 3):
+    def __init__(self, dataID: str, data: pd.DataFrame, groupingName: str | List[str], grouping: dict, name: str = None, minValidInGroup : int = 3, s0 : float = 0.1):
         super().__init__(dataID, data, groupingName, grouping, name)
 
         self._minValidInGroup = minValidInGroup
         self._groupColumns = [v for v in grouping[groupingName].values()]
+        self._s0 = s0
 
 
     def filterData(self, groupColumns : List[List[str]]) -> pd.DataFrame:
@@ -169,17 +172,20 @@ class ANOVAStatistic(PermutationBasedTest):
         self.filterData(self._groupColumns) #create self._filteredData object
         X = np.array([self._filteredData[groupColumn].values for groupColumn in self._groupColumns])
         #shape groups x features x replicates
-        print(X)
-        t1 = time.time()
-        f = performFTest(X)
-        print(time.time()-t1)
-        print(f)
-        t1 = time.time()
-        f,p = stats.f_oneway(*X,axis=1)
-        print(time.time()-t1)
-
-
-        print(f)
+        # print(X)
+        # t1 = time.time()
+        f1 = performFTest(X, self._s0)
+        # print(time.time()-t1)
+        # print(f1)
+        # t1 = time.time()
+        # f,p = stats.f_oneway(*X,axis=1)
+        # print(time.time()-t1)
+        dfn = len(self._groupColumns) - 1
+        dfd = sum([len(cs) for cs in self._groupColumns]) - len(self._groupColumns)
+        p = stats.f.sf(f1,dfn, dfd)
+        R = pd.DataFrame({"F":f1,"p-value" : p} ,index=self._filteredData.index,columns=["F","p-value"])
+        print(R)
+        return R
 
     def getPlotNames(self) -> List[str]:
         return ["Heatmap"]

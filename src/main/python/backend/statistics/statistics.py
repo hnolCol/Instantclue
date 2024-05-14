@@ -1478,6 +1478,7 @@ class StatisticCenter(object):
 
     def runCluster(self,dataID,columnNames,methodName,returnModel = False):
         "Cluster analysis for cluster plot"
+        alg = None 
         if methodName in clusteringMethodNames:
             if methodName == "HDBSCAN":
 
@@ -1491,9 +1492,9 @@ class StatisticCenter(object):
                 if hasattr(alg,"labels_"):
                     clusterLabels = pd.DataFrame(alg.labels_, index=data.index,columns = ["Labels"])
                 else:
-                    return pd.DataFrame(), pd.DataFrame() 
+                    return pd.DataFrame(), pd.DataFrame()
             else:
-                return pd.DataFrame(), pd.DataFrame() 
+                return pd.DataFrame(), pd.DataFrame()
             if returnModel:
 
                 return clusterLabels,data,alg

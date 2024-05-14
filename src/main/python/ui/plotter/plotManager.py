@@ -12,7 +12,6 @@ from .ICPlots.ICCountplot import ICCountplot
 from .ICPlots.ICBoxenplot import ICBoxenplot
 from .ICPlots.ICXYPlot import ICXYPlot
 #from .ICPlots.ICForestplot import ICForestplot
-from .ICPlots.ICWordCloud import ICWordCloud
 from .ICPlots.ICClusterplot import ICClusterplot
 
 plotTypeGraph = {
