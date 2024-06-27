@@ -375,7 +375,6 @@ class DelegateColor(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         QStyledItemDelegate.paint(self, painter, option, index)
-       # print(self.parent().focusRow)
         
         if self.parent().model().getCheckStateByTableIndex(index):
             painter.save()

@@ -18,6 +18,7 @@ class ICVenn(ICChart):
         super(ICVenn,self).__init__(*args,**kwargs)
         self.circles = OrderedDict()
         self.hoverCircles = OrderedDict()
+        self.alpha = 0.3
         
         self.addHoverBinding()
 
@@ -38,7 +39,6 @@ class ICVenn(ICChart):
 
     def subsetGroup(self, groupName):
         "" 
-        print(groupName)
         data = self.data["groupBy"].get_group(groupName)
         dataIndex = data.index.values
         dataID = self.data["dataID"]
@@ -60,7 +60,7 @@ class ICVenn(ICChart):
         ""
         return ["Annotate In Dataset..", "Create Subset .."]
 
-    def drawCircle(self,ax : Axes, x, y, r, c, fill = True, alpha : float = 0.5):
+    def drawCircle(self,ax : Axes, x, y, r, c, fill = True, alpha : float):
         ""
         c = Circle(xy = (x,y), radius=r, fill = fill, facecolor = c, ec = "black", alpha = alpha)
         ax.add_patch(c)
@@ -121,7 +121,7 @@ class ICVenn(ICChart):
                     ax = self.axisDict[0]
                 else:
                     ax = targetAx
-                circle = self.drawCircle(ax,xy[0],xy[1],r,color)
+                circle = self.drawCircle(ax,xy[0],xy[1],r,color,self.alpha)
                 self.circles[internalID] = circle
                 
         except Exception as e:
@@ -134,9 +134,7 @@ class ICVenn(ICChart):
         try:
             
             self.data = data
-            for groupName, groupData in self.data["groupBy"]:
-                print(groupName)
-            print(self.data)
+
             self.initAxes(data["axisPositions"])
             #set axis limits
             for n,ax in self.axisDict.items():
@@ -168,15 +166,15 @@ class ICVenn(ICChart):
         self.hoverCircles.clear()
         for internalID, circle in self.circles.items():
             if internalID in mouseOverCircleID:
-                circle.set_alpha(0.8)
-            else:
                 circle.set_alpha(0.5)
+            else:
+                circle.set_alpha(self.alpha)
 
         self.updateFigure.emit()
 
     def setHoverData(self,dataIndex : Iterable, showText : bool = False):
         ""
-       
+        
 
 
     def setHoverObjectsInvisible(self):
@@ -225,8 +223,7 @@ class ICVenn(ICChart):
 
     def mirrorAxisContent(self, axisID, targetAx,*args,**kwargs):
         ""
-        
-        data = self.data
+
         targetAx.set_aspect("equal")
         self.setAxisOff(targetAx)
         self.initVenn(onlyForID=axisID,targetAx=targetAx)

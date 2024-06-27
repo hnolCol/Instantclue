@@ -316,8 +316,10 @@ class ICChart(QObject):
 		graphIndendentSubMenus = self.getSubMenus()
 		graphDepSubMenus = self.getGraphSpecMenus()
 		
-		menus = createSubMenu(subMenus=graphIndendentSubMenus + graphDepSubMenus)
-		
+		menus = createSubMenu(subMenus=graphIndendentSubMenus )
+		if len(graphDepSubMenus) > 0:
+			menus["main"].addSeparator()
+			menus = createSubMenu(main = menus["main"], subMenus=graphDepSubMenus)
 		self.addMainFigActions(menus)
 		self.addAppActions(menus)
 		self.addMenuActions(menus)

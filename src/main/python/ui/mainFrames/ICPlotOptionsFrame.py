@@ -45,7 +45,6 @@ class PlotOptionFrame(QWidget):
 
     def _controls(self):
         ""
-        print(self.typeManager.getAvailableTypes())
         self.buttons = []
         for plotType in self.typeManager.getAvailableTypes():
         

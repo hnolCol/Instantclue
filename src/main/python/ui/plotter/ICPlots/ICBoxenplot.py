@@ -244,7 +244,6 @@ class ICBoxenplot(ICChart):
                     coords = np.array([(self.data["positions"][n][m], X.loc[dataIdx]) for dataIdx in dataIndex for m,X in enumerate(data) if dataIdx in X.index.values ])
                     self.p.f.canvas.restore_region(self.backgrounds[ax])                  
                     if coords.size > 0:
-                        
                         self.setHoverScatterData(coords,ax)
                     else:
                         self.p.f.canvas.blit(ax.bbox)

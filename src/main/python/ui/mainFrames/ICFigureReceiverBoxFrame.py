@@ -165,8 +165,7 @@ class MatplotlibFigure(QWidget):
     
     def setData(self,data):
         ""
-        print(data,"calling here")
-        print(self.ICPlotter.graph)
+
         if hasattr(self.ICPlotter,"graph"):
             self.ICPlotter.graph.setData(data)
 

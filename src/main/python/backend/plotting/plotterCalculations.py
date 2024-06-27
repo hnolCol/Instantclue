@@ -1058,11 +1058,14 @@ class PlotterBrain(object):
         :return: Dictionary with sizes of each set and overlaps
         """
         set_sizes = {}
-        if numberCategoricalColumns == 2:
+        if numberCategoricalColumns == 1:
+            setIndices =  [("Set 1",("+"))]
+                
+        elif numberCategoricalColumns == 2:
             setIndices =  [
                 ("Set 1",("+","-")),
                 ("Set 2",("-","+")),
-                ("Set 1&Set 2",("+","+","-"))]
+                ("Set 1&Set 2",("+","+"))]
             
         elif numberCategoricalColumns == 3:
             
@@ -1074,9 +1077,7 @@ class PlotterBrain(object):
                             ("Set 2&Set 3",("-","+","+")),
                             ("Set 1&Set 2&Set 3",("+","+","+"))]
         for setIdx in setIndices:
-            print(setIdx)
             setName,index = setIdx
-            print(setName,index)
             if index in categoricalCounts.index:
                 set_sizes[setName] = categoricalCounts.loc[index]
             else:
@@ -1276,9 +1277,18 @@ class PlotterBrain(object):
         
         sets = [data.loc[boolIdx[:,n],columnName].index for n,columnName in enumerate(categoricalColumns)]
         set_sizes = self.__venn_calculate_set_sizes(categoricalCounts,numberCategoricalColumns=numberElements)
+        columnLabelMargin = 0.1 * r 
+        if numberElements == 1:
+            pos = [((0,0),r)]
+            labels['Set 1'] = set_sizes["Set 1"] 
+            text_pos = {
+                    "Set 1" : (0,0),
+                }
+            
+            for n,(internalID, categoricalColumn) in enumerate(colorGroups[["color","group"]].values):
+                labelText[internalID] = ((0,r + columnLabelMargin),categoricalColumn,{"va" : "top", "ha" : "center"})
         
-        
-        if len(categoricalColumns) == 2:
+        elif numberElements == 2:
             circleXY = self.__venn_position_equal_intersecting_circles(r = r)
             pos = [(c,r) for c in circleXY[:2]]
             #T12, _, _, _ = self.__venn_label_positions(r = r)
@@ -1292,7 +1302,7 @@ class PlotterBrain(object):
                     "Set 1&Set 2" :(0,r/2)
                 }
             
-            columnLabelMargin = 0.05 * r 
+           
             for n,(internalID, categoricalColumn) in enumerate(colorGroups[["color","group"]].values):
                 if n == 0:
                     P = circleXY[0]
@@ -1309,7 +1319,7 @@ class PlotterBrain(object):
                     
                 labelText[internalID] = ((x,y),categoricalColumn,{"va" : va, "ha" : ha})
             
-        elif len(categoricalColumns) == 3:
+        elif numberElements == 3:
             
             circleXY = self.__venn_position_equal_intersecting_circles(r = r)
             pos = [(c,r) for c in circleXY]
@@ -1333,7 +1343,6 @@ class PlotterBrain(object):
                     'Set 1&Set 2&Set 3' : T123
                 }
                 #define labels 
-            columnLabelMargin = 0.05 * r 
             for n,(internalID, categoricalColumn) in enumerate(colorGroups[["color","group"]].values):
                 if n == 0:
                     P = circleXY[0]
@@ -1420,13 +1429,8 @@ class PlotterBrain(object):
             #text_pos = self.__venn_calculate_text_position(positions=[p[0] for p in pos], radii=[p[1] for p in pos])
             
             # print(text_pos)
-            # print(pos)
-            print(categoricalCounts)
-            print(categorySizes)
-            print(set_sizes)
-            
-            print(text_pos)
-        print(pos)
+
+    
         
         
         return { "data" : {

@@ -102,13 +102,13 @@ menuBarItems = [
         "dataType": "Numeric Floats",
         "fnKwargs":{"test":"t-test"}
     },
-        {
-        "subM":"Pairwise Tests",
-        "name":"ANOVA FDR",
-        "funcKey": "compareGroups",
-        "dataType": "Numeric Floats",
-        "fnKwargs":{"test":"1W-FDR"}
-    },
+    # {
+    #     "subM":"Pairwise Tests",
+    #     "name":"ANOVA FDR",
+    #     "funcKey": "compareGroups",
+    #     "dataType": "Numeric Floats",
+    #     "fnKwargs":{"test":"1W-FDR"}
+    # },
     
     {
         "subM":"Pairwise Tests",
