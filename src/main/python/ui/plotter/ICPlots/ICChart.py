@@ -181,12 +181,14 @@ class ICChart(QObject):
 			self.onPressEvent = self.p.f.canvas.mpl_connect('button_release_event', self.onPress)
 
 
-	def addText(self,ax,axisTransform  = False, stdTextFont = True,  *args,**kwargs) -> None:
+	def addText(self,ax,axisTransform  = False, stdTextFont = True, *args,**kwargs) -> None:
 		""
 		kwargs["transform"] = ax.transAxes if axisTransform else None
 		if stdTextFont:
 			kwargs["fontproperties"] = self.getStdFontProps()#"fontproperties"
-		ax.text(*args,**kwargs)
+		
+		t = ax.text(*args,**kwargs)
+		
 
 	def addTexts(self,texts, axisTransform = True, onlyForID = None, targetAx = None) -> None:
 		""
@@ -608,6 +610,7 @@ class ICChart(QObject):
 			return ["To main figure","Axis limits .."]
 		else:
 			return []
+
 	def addMainFigActions(self,menu):
 		""
 		try:

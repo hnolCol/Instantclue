@@ -1,3 +1,0 @@
-checkedValues	checkedColors	userDefinedColors
-PIGS	#abcdde	
-MRPL2	#2a76a9	

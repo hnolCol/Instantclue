@@ -4,11 +4,13 @@ import numpy as np
 import csv
 import re
 from itertools import chain
-
+from typing import List 
+from collections import OrderedDict
 #internal imports
 from .utils import buildRegex
 from ..utils.stringOperations import mergeListToString, getMessageProps, buildReplaceDict, combineStrings
 import warnings
+
 warnings.filterwarnings("ignore", 'This pattern has match groups')
 
 class CategoricalFilter(object):
@@ -20,7 +22,7 @@ class CategoricalFilter(object):
 
         self.splitString = splitString
         self.minStringLength = minStringLength
-        self.sourceData = sourceData
+        self.sourceData  = sourceData
         self.replaceDict = {True : "+",
                             False: self.sourceData.replaceObjectNan}
 
@@ -45,21 +47,34 @@ class CategoricalFilter(object):
         annotationColumnName = "{}:({}):({})".format(columnStr,operator,mergeListToString(columnNames))
         return self.sourceData.addColumnData(dataID,annotationColumnName,annotationColumn)
 
-    def annotateCategory(self,dataID,columnName,searchString, splitString = None, inputIsRegEx=False):
+    def annotateCategory(self,dataID : str,columnName : str , searchString : str|List[str], splitString : str = ";", inputIsRegEx : bool =False, separate : bool = False):
         ""
         
-        boolIndicator = self.searchCategory(dataID,columnName,searchString,splitString,inputIsRegEx)
-        
-        #if searching the category gave an error, error message is a dict
-        if isinstance(boolIndicator,dict):
-            return boolIndicator
+        if separate and isinstance(searchString,list) and len(searchString) > 1:
+            boolIndicators = OrderedDict()
+            for searchSubString in searchString:
+                boolIndicator = self.searchCategory(dataID,columnName,searchSubString,splitString,inputIsRegEx)
+                if not isinstance(boolIndicator,pd.Series):
+                    continue
+                annotationColumn = boolIndicator.map(self.replaceDict)
+                annotationColumnName = "{}:{}".format(searchSubString,columnName)
+                boolIndicators[annotationColumnName ] = annotationColumn
+            df = pd.DataFrame().from_dict(boolIndicators)
+                
+            return self.sourceData.joinDataFrame(dataID,df)
         else:
-            #generate new columnName
-            columnStr = mergeListToString(searchString)
-            annotationColumnName = "{}:{}".format(columnStr,columnName)
-            #replace bool with string
-            annotationColumn = boolIndicator.map(self.replaceDict)
-        return self.sourceData.addColumnData(dataID,annotationColumnName,annotationColumn)
+            boolIndicator = self.searchCategory(dataID,columnName,searchString,splitString,inputIsRegEx)
+            
+            #if searching the category gave an error, error message is a dict
+            if isinstance(boolIndicator,dict):
+                return boolIndicator
+            else:
+                #generate new columnName
+                columnStr = mergeListToString(searchString)
+                annotationColumnName = "{}:{}".format(columnStr,columnName)
+                #replace bool with string
+                annotationColumn = boolIndicator.map(self.replaceDict)
+            return self.sourceData.addColumnData(dataID,annotationColumnName,annotationColumn)
 
     def buildRegex(self, stringList, withSeparator = True, splitString = None, matchingGroupOnly = False):
         ""
@@ -117,7 +132,7 @@ class CategoricalFilter(object):
         return self.splitString
 
 
-    def searchCategory(self,dataID,columnName, searchString, splitString = None, inputIsRegEx = False):
+    def searchCategory(self,dataID,columnName, searchString, splitString = None, inputIsRegEx = False) -> pd.Series:
         ""
 
         if dataID not in self.sourceData.dfs:
@@ -353,7 +368,7 @@ class CategoricalFilter(object):
             return {"boolIndicator":boolInd,"resetData":resetDataInView}
         return getMessageProps("Filter not initialized","Filter not yet init.")	
 			
-    def applyLiveFilter(self, searchString = None, caseSensitive = True, annotateSearchString = False, inputIsRegEx = False, firstMatch = True, operator = "and"):
+    def applyLiveFilter(self, searchString : str = None, caseSensitive : bool = True, annotateSearchString : bool = False, inputIsRegEx : bool = False, firstMatch : bool = True, operator = "and", separate : bool = False):
         ""
         try:
    
@@ -374,6 +389,7 @@ class CategoricalFilter(object):
                     requestResponse = self.annotateCategory(
                             searchString = searchString,
                             dataID = self.filterProps["dataID"],
+                            separate = separate,
                             columnName = self.filterProps["columnNames"][0],
                             splitString = self.filterProps["splitString"])
                 else:
@@ -461,9 +477,8 @@ class CategoricalFilter(object):
 
       # return self.sourceData.addColumnData(dataID,annotationColumnName,annotationColumn)
 
-    def subsetData(self,dataID = None ,columnName = None ,searchString = None, splitString = None, inputIsRegEx=False, operator = "and", filterType = ""):
+    def subsetData(self,dataID = None ,columnName = None ,searchString = None, splitString = None, inputIsRegEx=False, operator = "and", filterType = "", separate : bool = False):
         "Splits Dataset based on category in a certain column"
-
         if filterType == "multiColumnCategory":
             return self.subsetDataOnMultiCategory(dataID,columnName,searchString,splitString,operator)
 
@@ -474,19 +489,45 @@ class CategoricalFilter(object):
 
         if columnName is None:
             columnName = self.filterProps["columnNames"][0]
-    
-        boolIndicator = self.searchCategory(dataID,columnName,searchString,splitString,inputIsRegEx)
-        #if searching the category gave an error, error message is a dict
-        if isinstance(boolIndicator,dict):
-            return boolIndicator
+         #get original file name
+        fileName = self.sourceData.getFileNameByID(dataID)
+        
+        if separate and isinstance(searchString,list) and len(searchString) > 1:
+            boolIndicators = OrderedDict()
+            for searchSubString in searchString:
+                boolIndicator = self.searchCategory(dataID,columnName,searchSubString,splitString,inputIsRegEx)
+                if not isinstance(boolIndicator,pd.Series):
+                    continue
+                #set up new file name
+                subsetName = '{}: {} in {}'.format(searchSubString,columnName,fileName)
+                annotationColumnName = "{}:{}".format(searchSubString,columnName)
+                boolIndicators[annotationColumnName ] = boolIndicator
+            
+            dfs = [(fileName,self.sourceData.dfs[dataID][boolIndicator]) for fileName, boolIndicator in boolIndicators.items()]
+            if len(dfs) > 0:
+                numberDataFrames = self.sourceData.addDataFrames(dfs)
+                funcReturnProps = getMessageProps("Split Data Frame",f"Data frame {fileName} was split on column: {columnName} In total {numberDataFrames } dataframes added.")
+                                           
+                #add dataframe names
+                funcReturnProps["dfs"] = self.sourceData.fileNameByID
+                #do not select last df after update
+                funcReturnProps["selectLastDf"] = False
+                return funcReturnProps
+            else:
+                return getMessageProps("Error...",f"Splitting resulted in zero data frames. Either because of an error in the filtering or category was not found.")
         else:
-            #get original file name
-            fileName = self.sourceData.getFileNameByID(dataID)
-            #set up new file name
-            subsetName = '{}: {} in {}'.format(searchString,columnName,fileName)
-            #addDataFrame, returns dict with message
-            messageProps = self.sourceData.addDataFrame(self.sourceData.dfs[dataID][boolIndicator], fileName = subsetName)
-        return messageProps
+    
+            boolIndicator = self.searchCategory(dataID,columnName,searchString,splitString,inputIsRegEx)
+            #if searching the category gave an error, error message is a dict
+            if isinstance(boolIndicator,dict):
+                return boolIndicator
+            else:
+               
+                #set up new file name
+                subsetName = '{}: {} in {}'.format(searchString,columnName,fileName)
+                #addDataFrame, returns dict with message
+                messageProps = self.sourceData.addDataFrame(self.sourceData.dfs[dataID][boolIndicator], fileName = subsetName)
+            return messageProps
 
 
     def splitDataFrame(self,dataID,columnNames):
@@ -509,7 +550,7 @@ class CategoricalFilter(object):
 
             ignoreNaNGroups = config.getParam("data.quick.subset.ignore.nanString")
             fileNameAndData = [('{}({}): {}'.format(groupName,columnNamesJoined,fileName),dataFrame) for groupName, dataFrame in groupedData if not (ignoreNaNGroups and groupName == self.sourceData.replaceObjectNan)]
-            nAddedDfs = self.sourceData.addDataFrames(fileNameAndData,copyTypesFromDataID = dataID)
+            nAddedDfs = self.sourceData.addDataFrames(fileNameAndData)
                 
             funcReturnProps = getMessageProps("Split Data Frame","Data frame {} was split on column(s): {} ".format(fileName,columnNamesJoined)+
                                            "In total {} dataframes added.".format(nAddedDfs))

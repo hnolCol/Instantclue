@@ -101,7 +101,7 @@ class ICScatterPlot(ICChart):
             self.tooltipColumnNames = tooltipColumnNames
             data = self.mC.data.getDataByColumnNames(dataID,tooltipColumnNames)["fnKwargs"]["data"]
             for scatterPlot in self.scatterPlots.values():
-                scatterPlot.addTooltip(data )
+                scatterPlot.addTooltip(data)
             labelData = pd.DataFrame() 
             labelData["columnName"] = tooltipColumnNames
             self.setDataInTooltipTable(labelData,title="Tooltip Labels")

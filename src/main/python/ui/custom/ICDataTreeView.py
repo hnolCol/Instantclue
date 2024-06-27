@@ -1017,7 +1017,7 @@ menuBarItems = [
         "subM":"Column operation ..",
         "name":"Add index column",
         "funcKey": "data::addIndexColumn",
-        "dataType": "All",
+        "dataType": "All"
     },
     {
         "subM":"Column operation ..",

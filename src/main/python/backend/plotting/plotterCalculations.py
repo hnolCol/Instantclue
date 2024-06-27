@@ -337,7 +337,8 @@ plotFnDict = {
    # "wordcloud"  : "getWordCloud",
     "clusterplot" : "getClusterProps",
     "mulitscatter" : "getScatterCorrMatrix",
-    "proteinpeptideplot" : "getProteinPeptideProps"
+    "proteinpeptideplot" : "getProteinPeptideProps",
+    "venn" : "getVennProps"
 }
 
 line_kwargs = dict(linewidths=.2, colors='k')
@@ -1022,6 +1023,432 @@ class PlotterBrain(object):
         y = np.append(y,[hist[-1]]).reshape(-1,1)
         
         return np.append(x,y,axis=1)
+    
+    def area(self, r1, r2, d):
+        "Calculate the area of two circles of different radii and a given distance."
+        import math 
+        s1 = r1**2 * math.acos((d**2 - r2**2 + r1**2)/(2 * d * r1))
+        s2 = r2**2 * math.acos((d**2 - r1**2 + r2**2)/(2 * d * r2))
+        s3 = math.sqrt((-d + r1 + r2) * (d + r1 - r2) * (d + r2 - r1) * (d + r1 + r2)) / 2
+        return s1 + s2 - s3
+
+    def solve(self,  r1, r2, targetArea, error):
+        d1 = r1 + r2
+        a1 = self.area(r1, r2, d1)
+        d2 = abs(r1 - r2)
+        a2 = self.area(r1, r2, d2)
+        while True:
+            d = (d1 + d2) / 2
+            a = self.area(r1, r2, d)
+            if abs(a - targetArea) <= error:
+                return d, a1, a2 
+            if a > targetArea:
+                d2 = d
+                a2 = a
+            else:
+                d1 = d
+                a1 = a
+   
+        
+    def __venn_calculate_set_sizes(self,categoricalCounts, numberCategoricalColumns = 2):
+        """
+        Calculate the sizes of each set and their overlaps.
+        
+        :param set_list: List of sets, each set represented by a list of elements
+        :return: Dictionary with sizes of each set and overlaps
+        """
+        set_sizes = {}
+        if numberCategoricalColumns == 2:
+            setIndices =  [
+                ("Set 1",("+","-")),
+                ("Set 2",("-","+")),
+                ("Set 1&Set 2",("+","+","-"))]
+            
+        elif numberCategoricalColumns == 3:
+            
+            setIndices = [("Set 1",("+","-","-")),
+                            ("Set 2",("-","+","-")),
+                            ("Set 3",("-","-","+")),
+                            ("Set 1&Set 2",("+","+","-")),
+                            ("Set 1&Set 3",("+","-","+")),
+                            ("Set 2&Set 3",("-","+","+")),
+                            ("Set 1&Set 2&Set 3",("+","+","+"))]
+        for setIdx in setIndices:
+            print(setIdx)
+            setName,index = setIdx
+            print(setName,index)
+            if index in categoricalCounts.index:
+                set_sizes[setName] = categoricalCounts.loc[index]
+            else:
+                set_sizes[setName] = 0
+            
+
+        return set_sizes
+        
+        
+        
+       
+        set_combinations = []
+
+        for i in range(len(set_list)):
+            set_sizes[f'Set {i+1}'] = len(set_list[i])
+            for j in range(i + 1, len(set_list)):
+                overlap = len(set(set_list[i]) & set(set_list[j]))
+                set_combinations.append((f'Set {i+1}&Set {j+1}', overlap))
+        
+        for combo in set_combinations:
+            set_sizes[combo[0]] = combo[1]
+
+        if len(set_list) == 3:
+            overlap_all = len(set(set_list[0]) & set(set_list[1]) & set(set_list[2]))
+            set_sizes['Set 1&Set 2&Set 3'] = overlap_all
+
+        return set_sizes
+    
+    
+    def __venn_get_distance(self, r1, r2, intersection_area):
+        ""
+        
+        d, a1, a2 = self.solve(r1,r2,intersection_area,0.1)
+        return d 
+
+
+    def __venn_position_equal_intersecting_circles(self, r : int):
+        # Distance between centers of circles
+        import math 
+        d = r * math.sqrt(3)
+        
+        # Circle centers
+        circle1 = (-d/3, r/2)
+        circle2 = (d/3, r/2)
+        circle3 = (0, -d/1.8+r/2)
+        
+        return circle1, circle2, circle3
+
+
+    def __venn_find_pos(self,R1,R2,R3,A12,A23,A13,A123,x2,y2):
+        import math
+        from scipy.optimize import minimize
+
+        def intersection_area(R1, R2, d):
+            if d >= R1 + R2:
+                return 1000000  # No intersection, make it very big, otherwise for small target areas, there is no optimization happening 
+            if d <= abs(R1 - R2):
+                return np.pi * min(R1, R2)**2  # One circle is completely inside the other
+            
+            part1 = R1**2 * math.acos((d**2 + R1**2 - R2**2) / (2 * d * R1))
+            part2 = R2**2 * math.acos((d**2 + R2**2 - R1**2) / (2 * d * R2))
+            part3 = 0.5 * math.sqrt((-d + R1 + R2) * (d + R1 - R2) * (d - R1 + R2) * (d + R1 + R2))
+            return part1 + part2 - part3
+        
+        def objective(params, x1, y1, x2, y2, A12, A13, A23, A123): #, R1, R2, R3
+            #x1, y1, x2, y2, x3, y3 = params
+            R1, R2, x3, y3, R3 = params
+            d12 = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+            d13 = math.sqrt((x3 - x1)**2 + (y3 - y1)**2)
+            d23 = math.sqrt((x3 - x2)**2 + (y3 - y2)**2)
+            
+            A_C12 = intersection_area(R1, R2, d12)
+            A_C13 = intersection_area(R1, R3, d13)
+            A_C23 = intersection_area(R2, R3, d23)
+            A_C123 = max(0, A_C12 + A_C13 + A_C23 - intersection_area(R1, R2, d12 + d13) - intersection_area(R1, R3, d13 + d23) - intersection_area(R2, R3, d23 + d12))
+            
+            if any(a == 0 for a in [A_C12,A_C13,A_C23]):
+                return ((A_C13 - A13)**2 + (A_C23 - A23)**2 + (A_C123 - A123)**2) * 1000
+            
+            
+            #print((A_C12 - A12)**2 + (A_C13 - A13)**2 + (A_C23 - A23)**2 + (A_C123 - A123)**2)
+            return (A_C13 - A13)**2 + (A_C23 - A23)**2 + (A_C123 - A123)**2
+
+        # def objective(params, x1, y1, R1, x2, y2, R2, x3, y3, R3, A12, A13, A23):
+        #     x, y, R = params
+            
+        #     d12 = math.sqrt((x - x1)**2 + (y - y1)**2)
+        #     d13 = math.sqrt((x - x2)**2 + (y - y2)**2)
+        #     d23 = math.sqrt((x - x3)**2 + (y - y3)**2)
+            
+        #     A_C1 = intersection_area(R1, R, d12)
+        #     A_C2 = intersection_area(R2, R, d13)
+        #     A_C3 = intersection_area(R3, R, d23)
+            
+        #     return (A_C1 - A12)**2 + (A_C2 - A13)**2 + (A_C3 - A23)**2
+
+        # Given circles' centers and radii
+        x1, y1 = 0, 0
+                # x2, y2, R2 = R1 + R2, 0, R2
+        # x3, y3, R3 = R1, R1 + R2 + R3, R3
+
+       
+
+        # Initial guess for the new circle's center and radius
+        # Initial guess for the centers and radii of the circles
+        initial_guess = [R1, R2, -R1, x2/2, R3]
+        bounds = [(R1,R1+0.5),(R2-0.5,R2+0.5),(R1,60),(-150,-10),(R3-0.5,R3+0.5)]
+        # Perform the optimization
+        print(bounds)
+        result = minimize(objective, initial_guess, 
+                          bounds=bounds, 
+                          args=(x1, y1, x2, y2, A12, A13, A23, A123), method='Powell') # R1, R2, R3
+
+        if result.success:
+            R1, R2, x3, y3, R3 = result.x
+            
+            return (x1, y1), (x2, y2), (x3, y3)
+            
+            #print(f"The new circle's center is at ({x:.6f}, {y:.6f}) with radius {R:.6f}")
+        else:
+            print("Optimization failed.")
+            
+    def __venn_label_positions(self,r : int):
+        import math 
+        # Distance between centers of circles
+        d = r * math.sqrt(3)
+        
+        # Circle centers
+        circle1 = (-d/3, r/2)
+        circle2 = (d/3, r/2)
+        circle3 = (0, -d/1.8+r/2)
+        
+        # Midpoint of line segment joining centers of Circle 1 and Circle 2
+        A12 = (0, d/6+r/2)
+        
+        # Midpoint of line segment joining centers of Circle 2 and Circle 3
+        A23 = ((circle2[0] + circle3[0]) / 2 + d/6, 0)
+        
+        # Midpoint of line segment joining centers of Circle 3 and Circle 1
+        A31 = ((circle3[0] + circle1[0]) / 2 - d/6, 0) #(circle3[1] + circle1[1]) / 2 - d/6
+        
+        # Centroid of the triangle (average of the centers)
+        A123 = ((circle1[0] + circle2[0] + circle3[0]) / 3, (circle1[1] + circle2[1] + circle3[1]) / 3)
+        
+        return A12, A23, A31, A123
+            
+    def venn_intersection_center(self, x1, y1, R1, x2, y2, R2):
+        import math
+        # Calculate the distance between the centers
+        d = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+        
+        # Check if circles intersect
+        if d >= R1 + R2:
+            return None  # No intersection
+        if d <= abs(R1 - R2):
+            return None  # One circle is completely inside the other
+        
+        # Calculate the weighted average center
+        x_c = (R2 * x1 + R1 * x2) / (R1 + R2)
+        y_c = (R2 * y1 + R1 * y2) / (R1 + R2)
+        
+        return (x_c, y_c)
+
+    def getVennProps(self, dataID, numericColumns, categoricalColumns, *args, **kwargs):
+        """
+        Calculates the overlap to plot a venn diagram 
+        """ 
+        r = 35
+        lim = r*2.5
+        axisLimits = {}
+        labelText = {}
+        labels = {}
+        axisLimits[0] = {
+                        "xLimit": (-lim,lim),
+                        "yLimit" : (-lim,lim)
+                        }
+        axisPositions = getAxisPosition(1,maxCol=1)
+        data : pd.DataFrame = self.sourceData.getDataByColumnNames(dataID,categoricalColumns)["fnKwargs"]["data"]
+        
+        for categoricalColumn in categoricalColumns:
+            boolIdx = data[categoricalColumn] != self.sourceData.replaceObjectNan
+            data.loc[boolIdx,categoricalColumn] = "+"
+        
+        colors = self.sourceData.colorManager.getNColorsByCurrentColorMap(len(categoricalColumns))
+        colorGroups = pd.DataFrame(columns = ["color","group","internalID"])
+        colorGroups["color"] = colors
+        colorGroups["group"] = categoricalColumns
+        colorGroups["internalID"] = [getRandomString() for n in range(len(categoricalColumns))]
+        
+        boolIdx = data.values == "+"
+        categorySizes = np.sum(boolIdx,axis=0)
+        
+        numberElements = len(categoricalColumns)
+        groupBy = data.groupby(by=categoricalColumns)
+        categoricalCounts = groupBy.size()
+        
+        
+        sets = [data.loc[boolIdx[:,n],columnName].index for n,columnName in enumerate(categoricalColumns)]
+        set_sizes = self.__venn_calculate_set_sizes(categoricalCounts,numberCategoricalColumns=numberElements)
+        
+        
+        if len(categoricalColumns) == 2:
+            circleXY = self.__venn_position_equal_intersecting_circles(r = r)
+            pos = [(c,r) for c in circleXY[:2]]
+            #T12, _, _, _ = self.__venn_label_positions(r = r)
+            labels['Set 1'] = set_sizes["Set 1"] 
+            labels['Set 2'] = set_sizes["Set 2"]  
+            labels['Set 1&Set 2'] = set_sizes["Set 1&Set 2"]
+            d = r * np.sqrt(3)
+            text_pos = {
+                    "Set 1" : (circleXY[0][0]-d/4,r/2),
+                    "Set 2" : (circleXY[1][0]+d/4,r/2),
+                    "Set 1&Set 2" :(0,r/2)
+                }
+            
+            columnLabelMargin = 0.05 * r 
+            for n,(internalID, categoricalColumn) in enumerate(colorGroups[["color","group"]].values):
+                if n == 0:
+                    P = circleXY[0]
+                    x = P[0] - r - columnLabelMargin
+                    y = P[1] 
+                    ha = "right"
+                    va = "center"
+                elif n == 1:
+                    P = circleXY[1]
+                    x = P[0] +  r + columnLabelMargin
+                    y = P[1] 
+                    ha = "left"
+                    va = "center"
+                    
+                labelText[internalID] = ((x,y),categoricalColumn,{"va" : va, "ha" : ha})
+            
+        elif len(categoricalColumns) == 3:
+            
+            circleXY = self.__venn_position_equal_intersecting_circles(r = r)
+            pos = [(c,r) for c in circleXY]
+            T12, T23, T31, T123 = self.__venn_label_positions(r = r)
+            
+            labels['Set 1'] = set_sizes["Set 1"] 
+            labels['Set 2'] = set_sizes["Set 2"]  
+            labels['Set 3'] = set_sizes["Set 3"]  
+            labels['Set 1&Set 2&Set 3'] = set_sizes["Set 1&Set 2&Set 3"]
+            labels['Set 1&Set 2'] = set_sizes["Set 1&Set 2"]
+            labels['Set 1&Set 3'] = set_sizes["Set 1&Set 3"]
+            labels['Set 2&Set 3'] = set_sizes["Set 2&Set 3"]
+            d = r * np.sqrt(3)
+            text_pos = {
+                    "Set 1" : (circleXY[0][0]-d/4,r/2),
+                    "Set 2" : (circleXY[1][0]+d/4,r/2),
+                    "Set 3" : (circleXY[2][0],circleXY[2][1]- d/4),
+                    "Set 1&Set 2" : T12,
+                    "Set 1&Set 3" : T31,
+                    "Set 2&Set 3" : T23,
+                    'Set 1&Set 2&Set 3' : T123
+                }
+                #define labels 
+            columnLabelMargin = 0.05 * r 
+            for n,(internalID, categoricalColumn) in enumerate(colorGroups[["color","group"]].values):
+                if n == 0:
+                    P = circleXY[0]
+                    x = P[0] - np.sqrt(2)/2 * r - columnLabelMargin
+                    y = P[1] + np.sqrt(2)/2 * r + columnLabelMargin
+                    ha = "right"
+                    va = "bottom"
+                elif n == 1:
+                    P = circleXY[1]
+                    x = P[0] +  np.sqrt(2)/2 * r + columnLabelMargin
+                    y = P[1] + np.sqrt(2)/2 * r + columnLabelMargin
+                    ha = "left"
+                    va = "bottom"
+                elif n == 2:
+                    P = circleXY[2]
+                    x = P[0]
+                    y = P[1] - r - columnLabelMargin
+                    ha = "center"
+                    va = "top"
+                    
+                labelText[internalID] = ((x,y),categoricalColumn,{"va" : va, "ha" : ha})
+            
+        else:
+        
+            return getMessageProps("Error..","Venn diagram are only available for 2 or 3 columns. ")
+            if len(sets) == 2:
+                r1 = set_sizes["Set 1"] 
+                r2 = set_sizes["Set 2"] 
+            # area1 = np.pi * r1 ** 2 
+            # area2 = np.pi * r2 ** 2 
+            # print(area1,area2,"AREA BEFORE")
+                intersection_area = np.pi * set_sizes["Set 1&Set 2"] ** 2 # np.pi * len([x for x in sets[0] if x in sets[1]]) ** 2 
+                labels['Set 1'] = set_sizes["Set 1"] - set_sizes["Set 1&Set 2"]
+                labels['Set 2'] = set_sizes["Set 2"]  - set_sizes["Set 1&Set 2"]
+                labels['Set 1&Set 2'] = set_sizes["Set 1&Set 2"]
+                d = self.__venn_get_distance(r1,r2,intersection_area)
+                pos = [((0,0),r1),((d,0),r2)]
+                P1, P2 = pos[0][0], pos[1][0]
+                text_pos = {
+                    "Set 1" : (((0-r1) + (d-r2)) / 2, 0),
+                    "Set 2" : (((r1)+ (d+r2))/2, 0),
+                    "Set 1&Set 2" : self.venn_intersection_center(x1=P1[0],y1=P1[1],R1 = r1, x2=P2[0], y2=P2[1], R2=r2)
+                }
+                
+                
+            elif len(sets) == 3:
+                
+                #the general idea here, to first set Set 1 and Set2 as fixed and then find the best solution for the thrid circle 
+                #to match the general intersectin areas 
+                r1 = set_sizes["Set 1"] 
+                r2 = set_sizes["Set 2"] 
+                r3 = set_sizes["Set 3"] 
+                A12 = np.pi * set_sizes["Set 1&Set 2"] ** 2 # np.pi * len([x for 
+                d12 = self.__venn_get_distance(r1,r2,A12)
+                #A12 = (set_sizes["Set 1&Set 2"]**2) * np.pi
+                A13 = (set_sizes["Set 1&Set 3"]**2) * np.pi
+                A23 = (set_sizes["Set 2&Set 3"]**2) * np.pi
+                A123 = (set_sizes["Set 1&Set 2&Set 3"]**2) * np.pi
+                x2,y2 = d12, 0 
+                P1, P2, P3 = self.__venn_find_pos(r1,r2,r3,A12,A23,A13,A123,x2,y2)
+                
+                text_pos = {
+                    "Set 1" : (((0-r1) + (d12-r2)) / 2, 0),
+                    "Set 2" : (((r1)+ (d12+r2))/2, 0),
+                    "Set 3" : (P3[0]+r3*0.75, P3[1]+r3*0.75),
+                    "Set 1&Set 2" : self.venn_intersection_center(x1=P1[0],y1=P1[1],R1 = r1, x2=P2[0], y2=P2[1], R2=r2),
+                    "Set 1&Set 3" : self.venn_intersection_center(x1=P1[0],y1=P1[1],R1 = r1, x2=P3[0], y2=P3[1], R2=r2),
+                    "Set 2&Set 3" : self.venn_intersection_center(x1=P2[0],y1=P2[1],R1 = r1, x2=P3[0], y2=P3[1], R2=r2),
+                }
+                #define labels 
+                labels['Set 1'] = set_sizes["Set 1"] - set_sizes["Set 1&Set 2"] - set_sizes["Set 1&Set 3"]
+                labels['Set 2'] = set_sizes["Set 2"]  - set_sizes["Set 1&Set 2"] - set_sizes["Set 2&Set 3"]
+                labels['Set 3'] = set_sizes["Set 3"]  - set_sizes["Set 1&Set 3"] - set_sizes["Set 2&Set 3"]
+                labels['Set 1&Set 2&Set 3'] = set_sizes["Set 1&Set 2&Set 3"]
+                labels['Set 1&Set 2'] = set_sizes["Set 1&Set 2"]
+                labels['Set 1&Set 3'] = set_sizes["Set 1&Set 3"]
+                labels['Set 2&Set 3'] = set_sizes["Set 2&Set 3"]
+                pos = [(P1,r1),(P2,r2),(P3,r3)]
+                
+            else:
+                return getMessageProps("Error..","Venn diagram are only available for 2 or 3 columns. ")
+            
+            # pos = self.__venn_calculate_positions(sets, scale_overlap=False)
+            #text_pos = self.__venn_calculate_text_position(positions=[p[0] for p in pos], radii=[p[1] for p in pos])
+            
+            # print(text_pos)
+            # print(pos)
+            print(categoricalCounts)
+            print(categorySizes)
+            print(set_sizes)
+            
+            print(text_pos)
+        print(pos)
+        
+        
+        return { "data" : {
+            "dataColorGroups": colorGroups,
+            "groupBy" : groupBy,
+            "axisPositions" : axisPositions,
+            "axisLimits" : axisLimits,
+            "numberElements" : numberElements,
+            "categorySizes" : categorySizes,
+            "counts" : categoricalCounts,
+            "categorialColumns" : categoricalColumns,
+            "dataID" : dataID, 
+            "circleProps" : pos,
+            "textProps" : text_pos,
+            "labelTextProps" : labelText,
+            "sizes" : set_sizes,
+            "internalIDs" : colorGroups["internalID"].tolist(),
+            "labels" : labels,
+           # "colors" : colors
+        }}
+        
+        
 
     def getViolinProps(self,dataID,numericColumns, categoricalColumns,*args,**kwargs):
         ""    

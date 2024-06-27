@@ -16,7 +16,8 @@ plotTypes = ["lineplot",
             "corrmatrix",
             "x-ys-plot",
             #"dim-red-plot",
-            "clusterplot"]
+            "clusterplot",
+            "venn"]
             #"forestplot",
          #   "wordcloud"]
             
@@ -41,7 +42,8 @@ requiredProps = {
     "dim-red-plot": {"numericalCols":2,"categoricalCols":0},
    # "forestplot" : {"numericalCols":1,"categoricalCols":1},
     #"wordcloud" : {"numericalCols":0,"categoricalCols":1},
-    "clusterplot" : {"numericalCols":2,"categoricalCols":0}
+    "clusterplot" : {"numericalCols":2,"categoricalCols":0},
+    "venn" : {"numericalCols" : 0, "categoricalCols" : 1}
 }
 
 
@@ -64,7 +66,8 @@ plotTypeTooltips = {
     "dim-red-plot" : "Dimensional reduction.\nAvailable methods: PCA",
    # "forestplot"   : "Forest plot. Calculates odds ratios and confidence interval.",
     #"wordcloud"   : "Word Cloud - Use categorical column to create a word cloud.",
-    "clusterplot" : "Clusterplot. Display clusters of data in multiple plot types (barplot/boxplot/lineplot)."
+    "clusterplot" : "Clusterplot. Display clusters of data in multiple plot types (barplot/boxplot/lineplot).",
+    "venn" : "Venn diagram which works on categorical columns. \nA maximum of 3 categorical columns might be used. All values in a categorical column that is not '-' are counted as positive."
 }
 
 gridPosition = {
@@ -72,7 +75,6 @@ gridPosition = {
         "pointplot":(0,1),
         "scatter":(1,0),
         "x-ys-plot":(1,1),
-        
        # "time_series":(1,1),
         "mulitscatter":(2,0),
         "histogram":(3,0),
@@ -87,7 +89,8 @@ gridPosition = {
         "corrmatrix":(7,1),
         "dim-red-plot" : (8,0),
         "clusterplot": (8,1),
-        "countplot":(9,1),
+        "countplot":(9,0),
+        "venn" : (9,1)
        # "wordcloud" : (9,1)
         
         }

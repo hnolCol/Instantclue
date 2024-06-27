@@ -106,6 +106,7 @@ class CustomCategoricalFilter(FilterBase):
             cb.clicked.connect(self.setCBCheckStates)
             self.CBFilterOptions[filtOption] = cb
 
+        
         self.table = PandaTable(self, cornerButton = False, hideMenu = True) 
         self.model = MultiColumnSelectablePandaModel(parent= self.table, df = self.mC.categoricalFilter.liveSearchData)
         self.table.setModel(self.model)
@@ -130,6 +131,7 @@ class CustomCategoricalFilter(FilterBase):
         # self.layout().addWidget(self.operatorCombo,2,1,1,1)
         for n,cb in enumerate(self.CBFilterOptions.values()):
              self.layout().addWidget(cb,3,n,1,1)
+        
         self.layout().addWidget(self.table,4,0,1,3)
         
     def __connectEvents(self):
@@ -230,6 +232,7 @@ class CategoricalFilter(FilterBase):
                 cb.setCheckState(getCheckStateFromBool(True))
             cb.clicked.connect(self.setCBCheckStates)
             self.CBFilterOptions[filtOption] = cb
+        self.indColumnsOption = QCheckBox("Separate into different columns/datasets", toolTip = "If you select multiple categories and enable this option, an individual column will be added for each category.")
 
         self.table = PandaTable(self, cornerButton = False, hideMenu = True) 
         self.model = SelectablePandaModel(parent= self.table, df = self.mC.categoricalFilter.liveSearchData)
@@ -246,7 +249,8 @@ class CategoricalFilter(FilterBase):
         self.layout().addWidget(self.updateButton,1,2,1,1)
         for n,cb in enumerate(self.CBFilterOptions.values()):
             self.layout().addWidget(cb,2,n,1,1)
-        self.layout().addWidget(self.table,3,0,1,3)
+        self.layout().addWidget(self.indColumnsOption,3,0,1,3)
+        self.layout().addWidget(self.table,4,0,1,3)
         
     def __connectEvents(self):
 
@@ -265,14 +269,18 @@ class CategoricalFilter(FilterBase):
         elif getBoolFromCheckState(self.CBFilterOptions["Annotate Selection"].checkState()):
 
             
-            funcProps = {"key":"filter::applyLiveFilter","kwargs":{
-                                            "searchString":selectedCategories}}
+            funcProps = {"key":"filter::applyLiveFilter",
+                         "kwargs":{
+                            "separate" : getBoolFromCheckState(self.indColumnsOption.checkState()),
+                            "searchString":selectedCategories}}
             self.mC.sendRequest(funcProps)
 
         elif getBoolFromCheckState(self.CBFilterOptions["Subset Selection"].checkState()):
-            funcProps = {"key":"filter::subsetData","kwargs":{"searchString":selectedCategories,
-                                                              "dataID":self.mC.mainFrames["data"].getDataID(),
-                                                              "columnName":self.categoricalColumns.values[0]}}
+            funcProps = {"key":"filter::subsetData",
+                         "kwargs":{"searchString":selectedCategories,
+                                    "dataID":self.mC.mainFrames["data"].getDataID(),
+                                    "separate" : getBoolFromCheckState(self.indColumnsOption.checkState()),
+                                    "columnName":self.categoricalColumns.values[0]}}
             
             self.mC.sendRequestToThread(funcProps)
         #update column names

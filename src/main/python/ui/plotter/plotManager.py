@@ -13,6 +13,7 @@ from .ICPlots.ICBoxenplot import ICBoxenplot
 from .ICPlots.ICXYPlot import ICXYPlot
 #from .ICPlots.ICForestplot import ICForestplot
 from .ICPlots.ICClusterplot import ICClusterplot
+from .ICPlots.ICVenn import ICVenn
 
 plotTypeGraph = {
                 "scatter"       :       ICScatterPlot,
@@ -32,7 +33,8 @@ plotTypeGraph = {
                 #"dim-red-plot"  :       ICBarplot,      
                # "forestplot"    :       ICForestplot,
                 #"wordcloud"     :       ICWordCloud,
-                "clusterplot"   :       ICClusterplot
+                "clusterplot"   :       ICClusterplot,
+                "venn"          :           ICVenn
                 }
 
 additionToGraph = {

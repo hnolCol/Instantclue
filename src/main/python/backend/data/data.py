@@ -259,7 +259,7 @@ class DataCollection(object):
 		funcProps["tooltipData"] = self.getTooltipdata(dataID)
 		return funcProps
 
-	def addIndexColumn(self,dataID : str) -> dict:
+	def addIndexColumn(self,dataID : str, *args, **kwargs) -> dict:
 		""
 		if dataID in self.dfs:
 			dfShape, rowIdx = self.getDataFrameShape(dataID)
@@ -429,20 +429,20 @@ class DataCollection(object):
 				"dfs":self.fileNameByID
 			}
 
-	def addDataFrames(self,fileNameAndDataFrame : List[tuple], copyTypesFromDataID : str) -> int:
+	def addDataFrames(self,fileNameAndDataFrame : List[tuple]) -> int:
 		"Not used from outside (e.g. new data frame)"
-		if copyTypesFromDataID in self.dfsDataTypesAndColumnNames:
-			for fileName,dataFrame in fileNameAndDataFrame:
-				dataID  = self.getNextDataFrameID()
-				self.dfs[dataID] = dataFrame
-				self.saveFileName(dataID,fileName)
-				#takes longer, but otherwise there is no tooltip.
-				self.extractDataTypeOfColumns(dataID)
-				# this is faster; 
-				#self.dfsDataTypesAndColumnNames[dataID] = self.dfsDataTypesAndColumnNames[copyTypesFromDataID].copy()
-				
-			return len(fileNameAndDataFrame)
-		return 0 
+		#dif copyTypesFromDataID in self.dfsDataTypesAndColumnNames:
+		for fileName,dataFrame in fileNameAndDataFrame:
+			dataID  = self.getNextDataFrameID()
+			self.dfs[dataID] = dataFrame
+			self.saveFileName(dataID,fileName)
+			#takes longer, but otherwise there is no tooltip.
+			self.extractDataTypeOfColumns(dataID)
+			# this is faster; 
+			#self.dfsDataTypesAndColumnNames[dataID] = self.dfsDataTypesAndColumnNames[copyTypesFromDataID].copy()
+			
+		return len(fileNameAndDataFrame)
+
 	
 	def checkForInternallyUsedColumnNames(self,dataFrame : pd.DataFrame) -> pd.DataFrame:
 		""

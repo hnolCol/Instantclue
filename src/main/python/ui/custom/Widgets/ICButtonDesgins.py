@@ -1032,7 +1032,7 @@ class ColorButton(PushHoverButton):
             scale = rScale[n]
             rCircle = scale * r
             c = QColor(circleColor)
-            c.setAlphaF(0.55 if not self.mouseOver else 0.9)
+            #c.setAlphaF(0.55 if not self.mouseOver else 0.9)
             b=QBrush(c)
             painter.setBrush(b)
             painter.drawEllipse(QPointF(x0+dx,y0-dy),rCircle ,rCircle )
@@ -1931,6 +1931,7 @@ class PlotTypeButton(PushHoverButton):
                             "dim-red-plot"  :   self.drawDimRed,
                             "forestplot"    :   self.drawForestplot,
                             "clusterplot"   :   self.drawClusterplot,
+                            "venn"          :   self.drawVenn
                           #  "wordcloud"     :   self.drawWordcloud
                             }
 
@@ -2107,7 +2108,28 @@ class PlotTypeButton(PushHoverButton):
                 QPointF(xValues[m]+errorValues[m]/2,yValues[m]))
 
 
-
+    def drawVenn(self, qp, height, width, rectX, rectY, numberVenns = 2):
+        "" 
+        defaultColors = ["#A0D4CB",INSTANT_CLUE_BLUE,"#397546"]
+        centerX = width/2
+        centerY = height/2 
+        r = width / 3 
+        d = width / 6
+        pen = QPen(QColor("black"))#
+        pen.setWidthF(0.2)
+        qp.setPen(pen)
+        for n in range(numberVenns):
+            c = QColor(defaultColors[n])
+            c.setAlphaF(0.75)
+            qp.setBrush(QBrush(c))
+            
+            if n == 0:
+                qp.drawEllipse(QPointF(centerX-d+r,centerY+r/2),r,r)
+            elif n == 1:
+                qp.drawEllipse(QPointF(centerX+d+r,centerY+r/2),r,r)
+            elif n == 2:
+                qp.drawEllipse(QPointF(centerX+d,centerY+r+d),r,r)
+            
 
     def drawViolinPlots(self, qp, height, width, rectX, rectY, nViolins = 3):
         ""

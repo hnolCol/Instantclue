@@ -45,6 +45,7 @@ class PlotOptionFrame(QWidget):
 
     def _controls(self):
         ""
+        print(self.typeManager.getAvailableTypes())
         self.buttons = []
         for plotType in self.typeManager.getAvailableTypes():
         
@@ -332,13 +333,16 @@ class PlotOptionFrame(QWidget):
             
         
     def checkType(self, plotType = None, setDefaultIsInvalid = True):
-        ""
+        "Checks the type is suitable for a chart."
         if plotType is None:
             plotType = self.currentPlotType
 
         nNumCol, nCatCol = self.getReceiverBoxItemProps()
-        if nNumCol == 0 and nCatCol > 0 and plotType not in ["wordcloud","countplot"]:
-            plotType = "countplot"
+        if nNumCol == 0 and nCatCol > 0 and plotType not in ["wordcloud","countplot","venn"]:
+            if nCatCol == 1 or nCatCol > 3:
+                plotType = "countplot"
+            else:
+                plotType = "venn"
             self.currentPlotType = plotType
         isValid, errorMsg = self.typeManager.isTypeValid(plotType,nNumCol,nCatCol)
         if setDefaultIsInvalid and not isValid:
