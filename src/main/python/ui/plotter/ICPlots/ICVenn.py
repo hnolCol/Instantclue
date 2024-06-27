@@ -60,7 +60,7 @@ class ICVenn(ICChart):
         ""
         return ["Annotate In Dataset..", "Create Subset .."]
 
-    def drawCircle(self,ax : Axes, x, y, r, c, fill = True, alpha : float):
+    def drawCircle(self,ax : Axes, x, y, r, c, fill = True, alpha : float = 0.3):
         ""
         c = Circle(xy = (x,y), radius=r, fill = fill, facecolor = c, ec = "black", alpha = alpha)
         ax.add_patch(c)
